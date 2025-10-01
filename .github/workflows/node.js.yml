@@ -1,0 +1,52 @@
+# Name of the workflow
+name: Node.js CI
+
+# Specifies when the workflow should be triggered
+on:
+  # Triggers the workflow on 'push' events to the 'main' branch
+  push:
+    branches: [ main ]
+  # Also triggers the workflow on 'pull_request' events targeting the 'main' branch
+  pull_request:
+    branches: [ main ]
+
+# Defines the jobs that the workflow will execute
+jobs:
+  # Job identifier
+  build:
+    # Specifies the type of virtual host environment (runner) to use
+    runs-on: ubuntu-latest
+
+    # Strategy for running the jobs
+    strategy:
+      # A matrix build strategy to test against multiple versions of Node.js
+      matrix:
+        # It's best practice to use a current LTS and a widely used older version
+        # Current LTS is 20.x, Active LTS is 18.x. 14.x and 16.x are end-of-life.
+        node-version: [22.x]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - # Checks-out your repository under $GITHUB_WORKSPACE, so the job can access it
+        # Updated to the current stable major version
+        uses: actions/checkout@v4
+
+      - # Sets up the specified version of Node.js
+        name: Use Node.js ${{ matrix.node-version }}
+        # Updated to the current stable major version
+        uses: actions/setup-node@v4
+        with:
+          # CORRECTED: The variable reference must use ${{ matrix.<variable> }}
+          node-version: ${{ matrix.node-version }}
+          # Recommended for caching node dependencies for faster subsequent runs
+          cache: 'npm' 
+
+      - # Installs node modules as specified in the project's package-lock.json
+        # 'npm ci' is correct for CI/CD builds
+        run: npm ci
+
+      - # This command will only run if a build script is defined in the package.json
+        run: npm run build --if-present
+
+      - # Runs tests as defined in the project's package.json
+        run: npm test
