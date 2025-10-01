@@ -23,7 +23,7 @@ jobs:
       matrix:
         # It's best practice to use a current LTS and a widely used older version
         # Current LTS is 20.x, Active LTS is 18.x. 14.x and 16.x are end-of-life.
-        node-version: [18.x, 20.x]
+        node-version: [14.x, 16.x]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
