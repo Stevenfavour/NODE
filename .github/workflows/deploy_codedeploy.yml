@@ -56,11 +56,10 @@ jobs:
 
       - name: Upload to S3
         # Uploads the deployment package to a temporary S3 bucket
-        uses: aws-actions/amazon-s3-upload-action@v1.0.1
-        with:
-          bucket: iamusermary001 ${{ env.AWS_REGION }} # <-- CHANGE THIS BUCKET NAME!
-          key: ${{ github.sha }}.zip
-          filename: deployment-package.zip
+        run: |
+          # Use AWS CLI to securely copy the zip file to your S3 bucket
+          aws s3 cp deployment-package.zip s3://iamusermary001/${{ github.sha }}.zip
+
 
       - name: Deploy to EC2 via CodeDeploy
         # Initiates the deployment using the CodeDeploy service
@@ -69,4 +68,4 @@ jobs:
             --application-name ${{ env.APPLICATION_NAME }} \
             --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
             --deployment-config-name CodeDeployDefault.OneAtATime \
-            --s3-location bucket=iamusermary001-${{ env.AWS_REGION }},key=${{ github.sha }}.zip,bundleType=zip
+            --s3-location bucket=iamusermary001,key=${{ github.sha }}.zip,bundleType=zip
