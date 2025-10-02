@@ -1,0 +1,72 @@
+name: Deploy via AWS CodeDeploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-north-1 # <-- Change this to your instance's region
+  APPLICATION_NAME: MyNodeApp # <-- Must match the name in AWS CodeDeploy
+  DEPLOYMENT_GROUP_NAME: MyDeploymentGroup # <-- Must match the name in AWS CodeDeploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install Dependencies, Build, and Test
+        run: |
+          npm ci
+          npm run build --if-present
+          npm test
+          # NOTE: If tests fail, the workflow will stop here.
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create Deployment Bundle (Zip)
+        run: |
+          # 1. Create a CodeDeploy AppSpec file (required by CodeDeploy)
+          echo "version: 0.0" > appspec.yml
+          echo "os: linux" >> appspec.yml
+          echo "files:" >> appspec.yml
+          echo "  - source: /" >> appspec.yml
+          echo "    destination: /var/www/html/mynodeapp" >> appspec.yml # <-- Change this path
+          echo "hooks:" >> appspec.yml
+          echo "  ApplicationStart:" >> appspec.yml
+          echo "    - location: scripts/start_server.sh" >> appspec.yml
+          
+          # 2. Bundle all necessary files and the appspec.yml
+          zip -r deployment-package.zip . -x "**/.git/*"
+
+      - name: Upload to S3
+        # Uploads the deployment package to a temporary S3 bucket
+        uses: aws-actions/upload-artifact-to-s3@v1
+        with:
+          bucket: iamusermary001-${{ env.AWS_REGION }} # <-- CHANGE THIS BUCKET NAME!
+          key: ${{ github.sha }}.zip
+          filename: deployment-package.zip
+
+      - name: Deploy to EC2 via CodeDeploy
+        # Initiates the deployment using the CodeDeploy service
+        run: |
+          aws deploy create-deployment \
+            --application-name ${{ env.APPLICATION_NAME }} \
+            --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --s3-location bucket=iamusermary001-${{ env.AWS_REGION }},key=${{ github.sha }}.zip,bundleType=zip
