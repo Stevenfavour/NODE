@@ -24,9 +24,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-      - name: Change Directory
-        run: cd NODE
-        
+
       - name: Install Dependencies, Build, and Test
         run: |
           npm ci
