@@ -41,17 +41,37 @@ jobs:
 
       - name: Create Deployment Bundle (Zip)
         run: |
-          # 1. Create a CodeDeploy AppSpec file (required by CodeDeploy)
-          echo "version: 0.0" > appspec.yml
-          echo "os: linux" >> appspec.yml
-          echo "files:" >> appspec.yml
-          echo "  - source: /" >> appspec.yml
-          echo "    destination: /var/www/html/mynodeapp" >> appspec.yml # <-- Change this path
-          echo "hooks:" >> appspec.yml
-          echo "  ApplicationStart:" >> appspec.yml
-          echo "    - location: scripts/start_server.sh" >> appspec.yml
+          # 1. Create the appspec.yml file using the cleaner 'cat <<EOF' syntax
+          cat <<EOF > appspec.yml
+          version: 0.0
+          os: linux
+          files:
+            - source: /
+              destination: /var/www/html/mynodeapp # <-- Your destination path
+          hooks:
+            ApplicationStart:
+              # *** FIXED: Reference the script in the root ***
+              - location: start_server.sh
+                timeout: 300
+                runas: ec2-user # <-- Recommend setting runas to the user running your app
+          EOF
           
-          # 2. Bundle all necessary files and the appspec.yml
+          # 2. Create the start_server.sh script file in the root
+          cat <<'EOF' > start_server.sh
+          #!/bin/bash
+          
+          # Navigate to the application's installation directory
+          cd /var/www/html/mynodeapp/
+          
+          # Use 'npm start' or a process manager like PM2 to run your app
+          # Ensure Node.js is installed on your EC2 instance and npm start works.
+          /usr/bin/npm start &
+          EOF
+          
+          # 3. Make the script executable (CRITICAL STEP)
+          chmod +x start_server.sh
+          
+          # 4. Bundle all necessary files (including the newly created appspec.yml and start_server.sh)
           zip -r deployment-package.zip . -x "**/.git/*"
 
       - name: Upload to S3
