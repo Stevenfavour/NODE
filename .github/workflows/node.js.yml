@@ -5,7 +5,7 @@ name: Node.js CI
 on:
   # Triggers the workflow on 'push' events to the 'main' branch
   push:
-    branches: [ main ]
+    # branches: [ main ], I dont want this workflow ro run when i update and push other workflows
   # Also triggers the workflow on 'pull_request' events targeting the 'main' branch
   pull_request:
     branches: [ main ]
@@ -23,7 +23,7 @@ jobs:
       matrix:
         # It's best practice to use a current LTS and a widely used older version
         # Current LTS is 20.x, Active LTS is 18.x. 14.x and 16.x are end-of-life.
-        node-version: [22.x]
+        node-version: [22.x, 20.x]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:

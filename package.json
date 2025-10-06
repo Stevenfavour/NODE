@@ -4,13 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint .",
     "test": "jest",
     "start": "node index.js"
   },
+  
+
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "eslint": "^9.37.0",
     "jest": "^30.2.0"
   }
 }
