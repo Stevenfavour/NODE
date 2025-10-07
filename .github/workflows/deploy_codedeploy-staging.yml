@@ -1,0 +1,96 @@
+name: Deploy via AWS CodeDeploy
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-north-1 # <-- Change this to your instance's region
+  APPLICATION_NAME: MyNodeApp-staging # <-- Must match the name in AWS CodeDeploy
+  DEPLOYMENT_GROUP_NAME: MyDeploymentGroup # <-- Must match the name in AWS CodeDeploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Code Quality Checks (lint test)
+        run: npm run lint
+
+      - name: Build, and Test
+        run: |
+          npm run build --if-present
+          npm test
+          # NOTE: If tests fail, the workflow will stop here.
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create Deployment Bundle (Zip)
+        run: |
+          # 1. Create the appspec.yml file using the cleaner 'cat <<EOF' syntax
+          cat <<EOF > appspec.yml
+          version: 0.0
+          os: linux
+          files:
+            - source: /
+              destination: /var/www/html/mynodeapp # <-- Your destination path
+          hooks:
+            ApplicationStart:
+              # *** FIXED: Reference the script in the root ***
+              - location: start_server.sh
+                timeout: 300
+                runas: ec2-user # <-- Recommend setting runas to the user running your app
+          EOF
+          
+          # 2. Create the start_server.sh script file in the root
+          cat <<'EOF' > start_server.sh
+          #!/bin/bash
+          
+          # Navigate to the application's installation directory
+          cd /var/www/html/mynodeapp/
+          
+          # Use 'npm start' or a process manager like PM2 to run your app
+          # Ensure Node.js is installed on your EC2 instance and npm start works.
+          /usr/bin/npm start &
+          EOF
+          
+          # 3. Make the script executable (CRITICAL STEP)
+          chmod +x start_server.sh
+          
+          # 4. Bundle all necessary files (including the newly created appspec.yml and start_server.sh)
+          zip -r deployment-package.zip . -x "**/.git/*"
+
+      - name: Upload to S3
+        # Uploads the deployment package to a temporary S3 bucket
+        run: |
+          # Use AWS CLI to securely copy the zip file to your S3 bucket
+          aws s3 cp deployment-package.zip s3://iamusermary001/${{ github.sha }}.zip
+
+
+      - name: Deploy to EC2 via CodeDeploy
+        # Initiates the deployment using the CodeDeploy service
+        run: |
+          aws deploy create-deployment \
+            --application-name ${{ env.APPLICATION_NAME }} \
+            --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --s3-location bucket=iamusermary001,key=${{ github.sha }}.zip,bundleType=zip

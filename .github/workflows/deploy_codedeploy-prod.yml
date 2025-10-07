@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: eu-north-1 # <-- Change this to your instance's region
-  APPLICATION_NAME: MyNodeApp-staging # <-- Must match the name in AWS CodeDeploy
+  APPLICATION_NAME: MyNodeApp # <-- Must match the name in AWS CodeDeploy
   DEPLOYMENT_GROUP_NAME: MyDeploymentGroup # <-- Must match the name in AWS CodeDeploy
 
 jobs:
