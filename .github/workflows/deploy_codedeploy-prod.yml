@@ -114,7 +114,11 @@ jobs:
           node-version: '22.x'
 
       - name: Install Semantic Release
-        run: npm install semantic-release 
+        run: npm install semantic-release
+
+      - name: Reslove permission
+        run: chmod +x node_modules/.bin/semantic-release
+
 
       - name: Run Semantic Release
         # This step analyzes commit messages to determine the next version (Patch, Minor, or Major)
