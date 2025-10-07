@@ -99,6 +99,11 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write # This is the crucial permission for git push/tagging
+      issues: write   # Recommended for creating/closing issues/comments
+      pull-requests: write # Recommended for creating/updating PRs
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
