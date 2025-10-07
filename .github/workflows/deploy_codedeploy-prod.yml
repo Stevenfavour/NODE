@@ -132,3 +132,4 @@ jobs:
         env:
           # Required for the action to authenticate with GitHub and create the release
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{secrets.NPM_TOKEN}}
