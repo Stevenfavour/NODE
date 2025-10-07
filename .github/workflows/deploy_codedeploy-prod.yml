@@ -114,7 +114,7 @@ jobs:
           node-version: '22.x'
 
       - name: Install Semantic Release
-        run: npm install semantic-release @semantic-release/changelog @semantic-release/git
+        run: npm install semantic-release 
 
       - name: Run Semantic Release
         # This step analyzes commit messages to determine the next version (Patch, Minor, or Major)
