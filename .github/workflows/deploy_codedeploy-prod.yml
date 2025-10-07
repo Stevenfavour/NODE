@@ -94,3 +94,31 @@ jobs:
             --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
             --deployment-config-name CodeDeployDefault.OneAtATime \
             --s3-location bucket=iamusermary001,key=${{ github.sha }}.zip,bundleType=zip
+  release:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for semantic-release to analyze all commits since the last tag
+          fetch-depth: 0 
+          # Use a token with write access to push tags and update package.json
+          token: ${{ secrets.GITHUB_TOKEN }} 
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install Semantic Release
+        run: npm install semantic-release @semantic-release/changelog @semantic-release/git
+
+      - name: Run Semantic Release
+        # This step analyzes commit messages to determine the next version (Patch, Minor, or Major)
+        # It updates package.json, creates the Git tag, and publishes the GitHub Release
+        run: npx semantic-release
+        env:
+          # Required for the action to authenticate with GitHub and create the release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
